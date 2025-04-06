@@ -29,7 +29,7 @@ The **Car Store API** is an Express-based application built with TypeScript, uti
     "description": "A reliable family sedan.",
     "quantity": 50,
     "inStock": true
-  } এটা readmi.md file a convert করে দেও
+  }
 Here's the converted README.md file for your Car Store API project:
 
 markdown
