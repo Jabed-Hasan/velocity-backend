@@ -6,9 +6,9 @@ export const USER_ROLE = {
 export interface TUser {
     name: string;
     email: string;
-    phone: string;
-    address: string;
-    city: string;
+    // phone: string;
+    // address: string;
+    // city: string;
     password: string;
     role: "admin" | "user";
     isBlocked: boolean;

@@ -9,7 +9,11 @@ const app = express();
 // using parser
 app.use(express.json());
 app.use(cookieParser())
-app.use(cors({ origin: 'https://polite-alpaca-22a086.netlify.app', credentials: true }));
+app.use(cors({
+  origin: "http://localhost:5173",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+}));
 
 // using router 
 app.use('/api', router)
