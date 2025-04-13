@@ -144,6 +144,22 @@ const createOrder = async (
   // Calculate total price (subtotal + tax + shipping)
   const totalPrice = subtotal + tax + shippingCost;
 
+  // Generate a unique tracking number
+  const timestamp = Date.now().toString(36);
+  const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+  const trackingNumber = `TRK-${timestamp}-${randomStr}`;
+  
+  // Create initial tracking update
+  const initialTrackingUpdate = {
+    stage: 'placed',
+    timestamp: new Date(),
+    message: 'Order has been placed successfully'
+  };
+
+  // Calculate estimated delivery date (1 week from now)
+  // const estimatedDeliveryDate = new Date();
+  // estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 7);
+  
   const order = await OrderModel.create({
     user,
     customerFirstName: payload.customerFirstName,
@@ -158,6 +174,9 @@ const createOrder = async (
     tax,
     shipping: shippingCost,
     totalPrice,
+    trackingNumber, // Add tracking number
+    trackingUpdates: [initialTrackingUpdate] // Add initial tracking update
+    // estimatedDeliveryDate // Add estimated delivery date
   });
 
   // Double-check the created order has products
@@ -192,7 +211,17 @@ const createOrder = async (
     });
   }
   
-  return payment.checkout_url
+  // Return both payment URL and order details including tracking number
+  return {
+    checkoutUrl: payment.checkout_url,
+    order: {
+      orderId: order._id,
+      trackingNumber: order.trackingNumber,
+      totalPrice: order.totalPrice,
+      status: order.status
+      // estimatedDeliveryDate: order.estimatedDeliveryDate
+    }
+  };
 };
 
 //   const payment = await orderUtils.makePaymentAsync(shurjopayPayload);
@@ -261,10 +290,132 @@ const getDetails = async () => {
   return result
 }
 
-export const orderService = {
-  createOrder,
+// Add these tracking-related services at the end of the file
+const getOrderByTrackingNumber = async (trackingNumber: string) => {
+  const order = await OrderModel.findOne({ trackingNumber }).populate({
+    path: 'products.product',
+    model: 'Car'
+  });
+  
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order not found with this tracking number");
+  }
+  return order;
+};
+
+const getOrderById = async (orderId: string) => {
+  const order = await OrderModel.findById(orderId).populate({
+    path: 'products.product',
+    model: 'Car'
+  });
+  
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+  }
+  return order;
+};
+
+const updateOrderTracking = async (
+  orderId: string,
+  trackingData: {
+    stage: 'placed' | 'approved' | 'processed' | 'shipped' | 'delivered';
+    message: string;
+    estimatedDeliveryDate?: string | Date;
+  }
+) => {
+  const order = await OrderModel.findById(orderId);
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+  }
+
+  // Update tracking stages
+  if (trackingData.stage === 'placed') {
+    order.trackingStages.placed = true;
+  } else if (trackingData.stage === 'approved') {
+    order.trackingStages.approved = true;
+  } else if (trackingData.stage === 'processed') {
+    order.trackingStages.processed = true;
+  } else if (trackingData.stage === 'shipped') {
+    order.trackingStages.shipped = true;
+  } else if (trackingData.stage === 'delivered') {
+    order.trackingStages.delivered = true;
+  }
+
+  // Add tracking update
+  order.trackingUpdates.push({
+    stage: trackingData.stage,
+    timestamp: new Date(),
+    message: trackingData.message,
+  });
+
+  // Update order status based on tracking stage
+  if (trackingData.stage === 'shipped') {
+    order.status = 'Shipped';
+  } else if (trackingData.stage === 'delivered') {
+    order.status = 'Completed';
+  }
+
+  // Set estimated delivery date if provided
+  if (trackingData.estimatedDeliveryDate) {
+    order.estimatedDeliveryDate = new Date(trackingData.estimatedDeliveryDate);
+  }
+
+  await order.save();
+  return order;
+};
+
+const assignTrackingNumber = async (orderId: string, trackingNumber: string) => {
+  const order = await OrderModel.findByIdAndUpdate(
+    orderId,
+    { trackingNumber },
+    { new: true }
+  );
+  
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+  }
+  
+  return order;
+};
+
+const setEstimatedDelivery = async (orderId: string, estimatedDeliveryDate: Date) => {
+  const order = await OrderModel.findByIdAndUpdate(
+    orderId,
+    { estimatedDeliveryDate },
+    { new: true }
+  );
+  
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+  }
+  
+  return order;
+};
+
+// Add function to get orders for a specific user
+const getUserOrders = async (userId: string) => {
+  const orders = await OrderModel.find({ user: userId })
+    .populate({
+      path: 'products.product',
+      model: 'Car'
+    })
+    .select('-trackingStages') // Exclude trackingStages from the response
+    .sort({ createdAt: -1 });
+  
+  return orders;
+};
+
+// Export the tracking services
+export const orderService = { 
+  createOrder, 
+  verifyPayment, 
+  getOrders, 
   calculateRevenue,
   getDetails,
-  verifyPayment,
-  getOrders
-}
+  getOrderByTrackingNumber,
+  getOrderById,
+  updateOrderTracking,
+  assignTrackingNumber,
+  setEstimatedDelivery,
+  getUserOrders
+};

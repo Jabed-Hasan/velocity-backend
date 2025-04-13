@@ -20,6 +20,20 @@ export interface TOrder {
   shipping: number;
   totalPrice: number;
   status: "Pending" | "Paid" | "Shipped" | "Completed" | "Cancelled";
+  trackingStages: {
+    placed: boolean;
+    approved: boolean;
+    processed: boolean;
+    shipped: boolean;
+    delivered: boolean;
+  };
+  trackingUpdates: {
+    stage: string;
+    timestamp: Date;
+    message: string;
+  }[];
+  trackingNumber?: string;
+  estimatedDeliveryDate?: Date;
   transaction: {
     id: string;
     transactionStatus: string;

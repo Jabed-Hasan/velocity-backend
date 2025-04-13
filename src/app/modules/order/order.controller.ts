@@ -47,12 +47,12 @@ const createOrder = catchAsync(async (req, res) => {
     }
   }
 
-  const order = await orderService.createOrder(user, req.body, req.ip!);
+  const result = await orderService.createOrder(user, req.body, req.ip!);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     message: "Order placed successfully",
-    data: order,
+    data: result,
   });
 });
 
@@ -99,4 +99,142 @@ const getDetails = catchAsync(async (req: Request, res: Response, next: NextFunc
   })
 });
 
-export const orderController = { createOrder, getRevenue, getDetails, verifyPayment, getOrders };
+// Add tracking-related controller functions
+const trackOrderByNumber = catchAsync(async (req: Request, res: Response) => {
+  const { trackingNumber } = req.params;
+  
+  const order = await orderService.getOrderByTrackingNumber(trackingNumber);
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    status: true,
+    message: "Order tracking information retrieved successfully",
+    data: order
+  });
+});
+
+const trackOrderById = catchAsync(async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+  
+  const order = await orderService.getOrderById(orderId);
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    status: true,
+    message: "Order tracking information retrieved successfully",
+    data: order
+  });
+});
+
+const updateTracking = catchAsync(async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+  const { stage, message, estimatedDeliveryDate } = req.body;
+  
+  if (!stage || !message) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      status: false,
+      message: "Stage and message are required for tracking update",
+      data: null
+    });
+  }
+  
+  const order = await orderService.updateOrderTracking(orderId, { 
+    stage, 
+    message,
+    estimatedDeliveryDate
+  });
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    status: true,
+    message: "Order tracking updated successfully",
+    data: order
+  });
+});
+
+const assignTrackingNumber = catchAsync(async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+  const { trackingNumber } = req.body;
+  
+  if (!trackingNumber) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      status: false,
+      message: "Tracking number is required",
+      data: null
+    });
+  }
+  
+  const order = await orderService.assignTrackingNumber(orderId, trackingNumber);
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    status: true,
+    message: "Tracking number assigned successfully",
+    data: order
+  });
+});
+
+const setEstimatedDelivery = catchAsync(async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+  const { estimatedDeliveryDate } = req.body;
+  
+  if (!estimatedDeliveryDate) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      status: false,
+      message: "Estimated delivery date is required",
+      data: null
+    });
+  }
+  
+  const order = await orderService.setEstimatedDelivery(
+    orderId, 
+    new Date(estimatedDeliveryDate)
+  );
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    status: true,
+    message: "Estimated delivery date set successfully",
+    data: order
+  });
+});
+
+// Add function to get orders for the current logged in user
+const getUserOrders = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  
+  if (!user?._id) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      status: false,
+      message: "User not authenticated or missing ID",
+      data: null
+    });
+  }
+  
+  const orders = await orderService.getUserOrders(user._id);
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    status: true,
+    message: "User orders retrieved successfully",
+    data: orders
+  });
+});
+
+export const orderController = { 
+  createOrder, 
+  getRevenue, 
+  getDetails, 
+  verifyPayment, 
+  getOrders,
+  trackOrderByNumber,
+  trackOrderById,
+  updateTracking,
+  assignTrackingNumber,
+  setEstimatedDelivery,
+  getUserOrders
+};

@@ -80,6 +80,50 @@ const OrderSchema = new Schema<TOrder>(
       enum: ["Pending", "Paid", "Shipped", "Completed", "Cancelled"],
       default: "Pending",
     },
+    trackingStages: {
+      placed: {
+        type: Boolean,
+        default: true,
+      },
+      approved: {
+        type: Boolean,
+        default: false,
+      },
+      processed: {
+        type: Boolean,
+        default: false,
+      },
+      shipped: {
+        type: Boolean,
+        default: false,
+      },
+      delivered: {
+        type: Boolean,
+        default: false,
+      },
+    },
+    trackingUpdates: [
+      {
+        stage: {
+          type: String,
+          required: true,
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        message: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    trackingNumber: {
+      type: String,
+    },
+    estimatedDeliveryDate: {
+      type: Date,
+    },
     transaction: {
       id: String,
       transactionStatus: String,
