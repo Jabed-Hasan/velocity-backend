@@ -1,4 +1,3 @@
-
 import express, { NextFunction, Request, Response } from 'express';
 import { CarControllers } from './car.controller';
 import auth from '../../middleware/auth';
@@ -13,6 +12,10 @@ router.post('/',
     upload.single('file'),
     (req: Request, res: Response, next: NextFunction) => {
         req.body = JSON.parse(req.body.data);
+        // Add file path to body for validation
+        if (req.file) {
+            req.body.image = req.file.path;
+        }
         next();
     },
     validateRequest(carValidationSchema),

@@ -84,55 +84,107 @@ import { orderUtils } from './order.utils';
 
 const createOrder = async (
   user: any,
-  payload: { products: { product: string; quantity: number }[] },
+  payload: { 
+    products: { product: string; quantity: number; price?: number }[],
+    customerFirstName: string,
+    customerLastName: string,
+    email: string,
+    phone: string,
+    address: string,
+    city: string,
+    zipCode: string
+  },
   client_ip: string
 ) => {
   if (!payload?.products?.length)
     throw new AppError(httpStatus.NOT_ACCEPTABLE, "Order is not specified");
 
   const products = payload.products;
+  
+  // Set fixed shipping cost
+  const shippingCost = 250;
 
-  let totalPrice = 0;
+  let subtotal = 0;
   const productDetails = await Promise.all(
     products.map(async (item) => {
       const product = await CarModel.findById(item.product);
-      if (product) {
-        const subtotal = product ? (product.price || 0) * item.quantity : 0;
-        totalPrice += subtotal;
-        return {
-          product: item.product,
-          quantity: item.quantity,
-          price: product.price || 0,
-          subtotal: subtotal
-        };
+      if (!product) {
+        throw new AppError(
+          httpStatus.NOT_FOUND,
+          `Product with ID ${item.product} not found`
+        );
       }
-      return null;
+      
+      // Use the product price from the database
+      const price = product.price || 0;
+      const itemSubtotal = price * item.quantity;
+      subtotal += itemSubtotal;
+      
+      return {
+        product: item.product,
+        quantity: item.quantity,
+        price: price,
+        subtotal: itemSubtotal
+      };
     })
-  ).then(results => results.filter(item => item !== null));
+  );
+  
+  // Verify we have valid product details before proceeding
+  if (!productDetails.length) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "No valid products found for this order"
+    );
+  }
 
-  let order = await OrderModel.create({
+  // Calculate tax (5% of subtotal)
+  const taxRate = 0.05;
+  const tax = subtotal * taxRate;
+  
+  // Calculate total price (subtotal + tax + shipping)
+  const totalPrice = subtotal + tax + shippingCost;
+
+  const order = await OrderModel.create({
     user,
+    customerFirstName: payload.customerFirstName,
+    customerLastName: payload.customerLastName,
+    email: payload.email,
+    phone: payload.phone,
+    address: payload.address,
+    city: payload.city,
+    zipCode: payload.zipCode,
     products: productDetails,
+    subtotal,
+    tax,
+    shipping: shippingCost,
     totalPrice,
   });
+
+  // Double-check the created order has products
+  if (!order.products || order.products.length === 0) {
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Failed to save products to the order"
+    );
+  }
 
   // payment integration
   const shurjopayPayload = {
     amount: totalPrice,
     order_id: order._id,
     currency: "BDT",
-    customer_name: user.name || "Customer",
-    customer_address: user.address || "Customer Address",
-    customer_email: user.email || "customer@example.com",
-    customer_phone: user.phone || "01700000000",
-    customer_city: user.city || "Dhaka",
+    customer_name: `${payload.customerFirstName} ${payload.customerLastName}`,
+    customer_address: payload.address,
+    customer_email: payload.email,
+    customer_phone: payload.phone,
+    customer_city: payload.city,
     client_ip,
   };
 
   const payment = await orderUtils.makePaymentAsync(shurjopayPayload);
   
   if(payment?.transactionStatus) {
-    order =await OrderModel.updateOne( {
+    await OrderModel.updateOne({ _id: order._id }, {
       transaction: {
         id: payment.sp_order_id,
         transactionStatus: payment.transactionStatus,
