@@ -23,7 +23,7 @@ router.post('/',
 // 2. Get All Cars
 router.get('/', CarControllers.getCars);
 // 3. Get a Specific Car
-router.get('/:id', auth(USER_ROLE.admin), CarControllers.getSpecificCar);
+router.get('/:id', CarControllers.getSpecificCar);
 // 4. Update a Car
 router.patch('/:id', auth(USER_ROLE.admin), CarControllers.updateCar);
 // 5. Delete a Car

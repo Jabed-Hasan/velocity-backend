@@ -9,14 +9,15 @@ const router = express.Router();
 
 
 // Verify payment
-router.get('/verify', auth(USER_ROLE.admin), orderController.verifyPayment);
+router.get('/verify', auth(USER_ROLE.admin, USER_ROLE.user), orderController.verifyPayment);
 
 // Order routes
-router.post('/', auth(USER_ROLE.admin), orderController.createOrder);
-router.get('/', auth(USER_ROLE.admin), orderController.getOrders);
+//router.post('/', auth(USER_ROLE.user), orderController.createOrder);
+router.post('/', auth(USER_ROLE.admin, USER_ROLE.user), orderController.createOrder);
+//router.post('/', auth(USER_ROLE.user), orderController.createOrder);
+router.get('/', auth(USER_ROLE.admin, USER_ROLE.user), orderController.getOrders);
 
-router.get('/details', auth(USER_ROLE.admin), orderController.getDetails);
-
+router.get('/details', auth(USER_ROLE.admin, USER_ROLE.user), orderController.getDetails);
 // Get revenue
 router.get('/revenue', auth(USER_ROLE.admin), orderController.getRevenue);
 
