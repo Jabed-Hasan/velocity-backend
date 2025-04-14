@@ -241,28 +241,41 @@ const createOrder = async (
 const verifyPayment = async (order_id: string) => {
    const verifiedPayment = await orderUtils.verifyPaymentAsync(order_id);
    if(verifiedPayment.length){
-    await OrderModel.findOneAndUpdate
-    ( { "transaction.id":order_id },
-      {
-        "transaction.bank_status":verifiedPayment[0].bank_status,
-        "transaction.sp_code":verifiedPayment[0].sp_code,
-        "transaction.sp_message":verifiedPayment[0].sp_message,
-        "transaction.transaction_status":verifiedPayment[0].transaction_status,
-        "transaction.date_time":verifiedPayment[0].date_time,
-        status:verifiedPayment[0].bank_status === "Success" ?
-         "Paid"
-          : verifiedPayment[0].bank_status === "Failed" ?
-            "Pending"
-             :verifiedPayment[0].bank_status === "Cancel" ?
-              "Cancelled"
-              :""
-      }
-    )
-     
-   
+    const bankStatus = verifiedPayment[0].bank_status;
+    const isCancelled = bankStatus === "Cancel";
+    const isPaid = bankStatus === "Success";
+    const isBankStatusNull = !bankStatus || bankStatus === null;
+    
+    const updateData: any = {
+      "transaction.bank_status": bankStatus,
+      "transaction.sp_code": verifiedPayment[0].sp_code,
+      "transaction.sp_message": verifiedPayment[0].sp_message,
+      "transaction.transaction_status": verifiedPayment[0].transaction_status,
+      "transaction.date_time": verifiedPayment[0].date_time,
+      status: bankStatus === "Success" ? "Paid" 
+              : bankStatus === "Failed" ? "Pending"
+              : bankStatus === "Cancel" ? "Cancelled"
+              : ""
+    };
+    
+    // If order is cancelled or bank status is null, clear estimated delivery date
+    if (isCancelled || isBankStatusNull) {
+      updateData.estimatedDeliveryDate = undefined;
+    }
+    
+    // If order is paid, set estimated delivery date to 7 days from now
+    if (isPaid) {
+      const estimatedDeliveryDate = new Date();
+      estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 7);
+      updateData.estimatedDeliveryDate = estimatedDeliveryDate;
+    }
+    
+    await OrderModel.findOneAndUpdate(
+      { "transaction.id": order_id },
+      updateData
+    );
    }
  
-
    return verifiedPayment;
 };
 
@@ -328,16 +341,26 @@ const updateOrderTracking = async (
     throw new AppError(httpStatus.NOT_FOUND, "Order not found");
   }
 
-  // Update tracking stages
+  // Update tracking stages - ensure all previous stages are also set to true
   if (trackingData.stage === 'placed') {
     order.trackingStages.placed = true;
   } else if (trackingData.stage === 'approved') {
+    order.trackingStages.placed = true;
     order.trackingStages.approved = true;
   } else if (trackingData.stage === 'processed') {
+    order.trackingStages.placed = true;
+    order.trackingStages.approved = true;
     order.trackingStages.processed = true;
   } else if (trackingData.stage === 'shipped') {
+    order.trackingStages.placed = true;
+    order.trackingStages.approved = true;
+    order.trackingStages.processed = true;
     order.trackingStages.shipped = true;
   } else if (trackingData.stage === 'delivered') {
+    order.trackingStages.placed = true;
+    order.trackingStages.approved = true;
+    order.trackingStages.processed = true;
+    order.trackingStages.shipped = true;
     order.trackingStages.delivered = true;
   }
 
@@ -355,9 +378,15 @@ const updateOrderTracking = async (
     order.status = 'Completed';
   }
 
-  // Set estimated delivery date if provided
-  if (trackingData.estimatedDeliveryDate) {
-    order.estimatedDeliveryDate = new Date(trackingData.estimatedDeliveryDate);
+  // Check if order status is Cancelled
+  if (order.status === 'Cancelled') {
+    // If cancelled, set estimated delivery date to undefined
+    order.estimatedDeliveryDate = undefined;
+  } else {
+    // Otherwise, set estimated delivery date if provided
+    if (trackingData.estimatedDeliveryDate) {
+      order.estimatedDeliveryDate = new Date(trackingData.estimatedDeliveryDate);
+    }
   }
 
   await order.save();
