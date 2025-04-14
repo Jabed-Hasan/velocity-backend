@@ -72,9 +72,55 @@ const changePassword = async (id: string, newPassword: string) => {
     return result;
 };
 
+// Admin update user (including role changes)
+const adminUpdateUser = async (id: string, payload: Partial<TUser>) => {
+    console.log('Admin updating user with data:', payload);
+    
+    // Check if ID is valid MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new Error('Invalid ID format');
+    }
+    
+    // First find the user by ID to check if they exist
+    const existingUser = await UserModel.findById(id);
+    if (!existingUser) {
+        throw new Error('User not found');
+    }
+    
+    // Check for email uniqueness only if email is in the payload and it's different
+    if (payload.email && payload.email !== existingUser.email) {
+        // Check if email is already used by another user
+        const userWithEmail = await UserModel.findOne({ 
+            email: payload.email, 
+            _id: { $ne: id } 
+        });
+        
+        if (userWithEmail) {
+            throw new Error(`${payload.email} is already exists`);
+        }
+    }
+    
+    // If we reach here, validation passed - update the user
+    const updatedUser = await UserModel.findByIdAndUpdate(
+        id,
+        { $set: payload },
+        { new: true, runValidators: true }
+    );
+    
+    return updatedUser;
+};
+
+// Delete a user
+const deleteUser = async (id: string) => {
+    const result = await UserModel.findByIdAndDelete(id);
+    return result;
+};
+
 export const userService = { 
     getSingleUser, 
     getAllUser, 
     updateUser,
-    changePassword 
+    changePassword,
+    adminUpdateUser,
+    deleteUser
 }

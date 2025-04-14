@@ -26,7 +26,8 @@ const getCars = catchAsync(async (req: Request, res: Response, next: NextFunctio
     statusCode: (httpStatus.OK),
     status: true,
     message: "Car are retrieved successfully",
-    data: result
+    data: result.data,
+    meta: result.meta
   })
   // res.send(result)
 });

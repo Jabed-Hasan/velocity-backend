@@ -1,5 +1,3 @@
-
-
 import { sendImageToCloudinary } from '../../utils/sendImageCloudinary';
 import { TCar } from './car.interface';
 import { CarModel } from './car.modle';
@@ -34,9 +32,8 @@ const getAllCarsFromDb = async (query: Record<string, unknown>) => {
     const filterQuery = searchQuery.find(queryObj);
 
     // Pagination
-
     const page = Number(query?.page) || 1;
-    const limit = Number(query?.limit) || 6;
+    const limit = Number(query?.limit) || 20;
     // // skip = (page-1)*limit
     const skip = (page - 1) * limit;
 
@@ -61,8 +58,18 @@ const getAllCarsFromDb = async (query: Record<string, unknown>) => {
     }
 
     const result = await sortQuery.select(fields);
-
-    return result;
+    
+    // Get total count for metadata
+    const total = await CarModel.countDocuments();
+    
+    return {
+        data: result,
+        meta: {
+            page,
+            limit,
+            total
+        }
+    };
 };
 // 3. Get a Specific Car
 const getSpecificCar = async (id: string) => {

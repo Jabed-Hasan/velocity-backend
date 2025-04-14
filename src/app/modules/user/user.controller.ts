@@ -173,9 +173,92 @@ const changePassword = catchAsync(async (req: Request, res: Response, next: Next
     });
 });
 
+// Admin update user (including role changes)
+const adminUpdateUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.params.id;
+    const updatedData = req.body;
+    
+    try {
+        // Admin can update any user data including roles
+        const result = await userService.adminUpdateUser(userId, updatedData);
+        
+        sendResponse(res, {
+            statusCode: httpStatus.OK,
+            status: true,
+            message: 'User information updated successfully by admin',
+            data: result
+        });
+    } catch (error: Error | unknown) {
+        // Handle specific errors
+        const err = error as Error;
+        if (err.message.includes('Invalid ID')) {
+            return sendResponse(res, {
+                statusCode: httpStatus.BAD_REQUEST,
+                status: false,
+                message: 'Invalid ID',
+                data: null,
+                errorSources: [
+                    {
+                        path: '',
+                        message: err.message
+                    }
+                ]
+            });
+        } else if (err.message.includes('already exists')) {
+            return sendResponse(res, {
+                statusCode: httpStatus.BAD_REQUEST,
+                status: false,
+                message: 'Email already exists',
+                data: null,
+                errorSources: [
+                    {
+                        path: '',
+                        message: err.message
+                    }
+                ]
+            });
+        } else if (err.message.includes('User not found')) {
+            return sendResponse(res, {
+                statusCode: httpStatus.NOT_FOUND,
+                status: false,
+                message: 'User not found',
+                data: null
+            });
+        }
+        
+        // Default error handling
+        return sendResponse(res, {
+            statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+            status: false,
+            message: 'Failed to update user',
+            data: null,
+            errorSources: [
+                {
+                    path: '',
+                    message: err.message
+                }
+            ]
+        });
+    }
+});
+
+// Delete a user
+const deleteUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const id = req.params.id;
+    const result = await userService.deleteUser(id);
+    sendResponse(res, { 
+        statusCode: httpStatus.OK, 
+        status: true, 
+        message: 'User deleted successfully!', 
+        data: result 
+    });
+});
+
 export const userController = { 
     getUsers, 
     getSingleUsers, 
     updateUserInfo,
-    changePassword
+    changePassword,
+    adminUpdateUser,
+    deleteUser
 }
