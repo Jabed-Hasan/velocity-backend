@@ -26,6 +26,34 @@ UserSchema.pre('save', async function (next) {
     next()
 })
 
+// IMPORTANT: We need to implement a pre-hook for findOneAndUpdate to handle password hashing
+// This is needed because findByIdAndUpdate bypasses the 'save' middleware
+UserSchema.pre('findOneAndUpdate', async function (next) {
+    // In Mongoose, this.getUpdate() might return either a simple object or an object with $set
+    const update = this.getUpdate() as { 
+        password?: string; 
+        $set?: { password?: string } 
+    };
+    
+    // Check if the update contains a password directly or in $set
+    if (update.password) {
+        console.log('Hashing password in findOneAndUpdate middleware - direct');
+        update.password = await bcrypt.hash(
+            update.password,
+            Number(config.BCRYPT_SALT_ROUNDS)
+        );
+    } else if (update.$set && update.$set.password) {
+        console.log('Hashing password in findOneAndUpdate middleware - $set');
+        update.$set.password = await bcrypt.hash(
+            update.$set.password,
+            Number(config.BCRYPT_SALT_ROUNDS)
+        );
+    }
+    
+    console.log('Update operation:', JSON.stringify(update));
+    next();
+});
+
 UserSchema.post('save', async function (doc, next) {
     doc.password = '';
     next()

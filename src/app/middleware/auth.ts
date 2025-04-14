@@ -29,14 +29,20 @@ const auth = (...requiredRoles: TUserRole[]) => {
         }
 
 
-        const { role, email } = decoded;
+        const { role, email, userId } = decoded;
 
-        // checking if the user is exist
-        const user = await UserModel.findOne({ email });
-        // console.log(user);
+        // checking if the user is exist - first by email
+        let user = await UserModel.findOne({ email });
+        
+        // If email lookup fails but we have userId, try finding by userId
+        if (!user && userId) {
+            console.log(`User not found with email: ${email}, trying userId: ${userId}`);
+            user = await UserModel.findById(userId);
+        }
 
         if (!user) {
-            throw new Error('This user is not found !')
+            console.log(`User not found with email: ${email} or id`);
+            throw new Error(`User not found with email: ${email}`);
         }
 
         // checking if the user is blocked
