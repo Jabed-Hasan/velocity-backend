@@ -8,25 +8,26 @@ const app = express();
 
 // using parser
 app.use(express.json());
-app.use(cookieParser())
-app.use(cors({
-  origin: 'http://localhost:5173', // Your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: 'http://localhost:5173', // Your frontend URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  }),
+);
 
-// using router 
-app.use('/api', router)
-
+// using router
+app.use('/api', router);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Server is running 💨🏃‍♀️');
 });
-// Global error handler 
-app.use(globalErrorHandler)
+// Global error handler
+app.use(globalErrorHandler);
 
-//Not found 
-app.use(notFound)
+//Not found
+app.use(notFound);
 
 export default app;
