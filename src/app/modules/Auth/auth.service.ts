@@ -18,7 +18,7 @@ const login = async (payload: ILogInUser) => {
     }
     const isBlocked = user?.isBlocked
     if (isBlocked === true) {
-        throw new AppError(httpStatus.FORBIDDEN, 'Your account has been blocked. Please contact support for assistance.')
+        throw new AppError(httpStatus.FORBIDDEN, 'Your account has been deactivated. Please contact support for assistance.')
     }
 
     console.log('Login attempt for:', payload.email);
