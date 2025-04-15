@@ -26,7 +26,8 @@ const getCars = catchAsync(async (req: Request, res: Response, next: NextFunctio
     statusCode: (httpStatus.OK),
     status: true,
     message: "Car are retrieved successfully",
-    data: result
+    data: result.data,
+    meta: result.meta
   })
   // res.send(result)
 });
@@ -41,24 +42,46 @@ const getSpecificCar = catchAsync(async (req: Request, res: Response, next: Next
     data: result
   })
 });
-// 4. Update a Car
-const updateCar = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const id = req.params.id;
-  const data = req.body;
-  const result = await CarServices.updateCar(id, data);
-  sendResponse(res, {
-    status: true,
-    statusCode: (httpStatus.OK),
-    message: 'Car is updated successfully.',
-    data: result,
-  });
-});
 // 5. Delete a Car
 const deleteCar = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const id = req.params.id;
   const result = await CarServices.deleteCar(id);
   sendResponse(res, { statusCode: (httpStatus.OK), status: true, message: 'Car is deleted successfully!', data: result })
 
+});
+
+// 4. Update a Car
+const updateCar = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const id = req.params.id;
+  
+  // Check if ID is provided
+  if (!id) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      status: false,
+      message: 'Car ID is required',
+      data: null
+    });
+  }
+  
+  // Check if request body is empty
+  if (Object.keys(req.body).length === 0) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      status: false,
+      message: 'No update data provided',
+      data: null
+    });
+  }
+  
+  const result = await CarServices.updateCar(id, req.body);
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    status: true,
+    message: 'Car is updated successfully',
+    data: result
+  });
 });
 
 export const CarControllers = {

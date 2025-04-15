@@ -1,5 +1,3 @@
-
-
 import { sendImageToCloudinary } from '../../utils/sendImageCloudinary';
 import { TCar } from './car.interface';
 import { CarModel } from './car.modle';
@@ -34,9 +32,8 @@ const getAllCarsFromDb = async (query: Record<string, unknown>) => {
     const filterQuery = searchQuery.find(queryObj);
 
     // Pagination
-
     const page = Number(query?.page) || 1;
-    const limit = Number(query?.limit) || 6;
+    const limit = Number(query?.limit) || 20;
     // // skip = (page-1)*limit
     const skip = (page - 1) * limit;
 
@@ -61,8 +58,18 @@ const getAllCarsFromDb = async (query: Record<string, unknown>) => {
     }
 
     const result = await sortQuery.select(fields);
-
-    return result;
+    
+    // Get total count for metadata
+    const total = await CarModel.countDocuments();
+    
+    return {
+        data: result,
+        meta: {
+            page,
+            limit,
+            total
+        }
+    };
 };
 // 3. Get a Specific Car
 const getSpecificCar = async (id: string) => {
@@ -70,9 +77,32 @@ const getSpecificCar = async (id: string) => {
     return result;
 };
 // 4. Update a Car
-const updateCar = async (id: string, data: TCar) => {
-    const result = await CarModel.findByIdAndUpdate(id, data, { new: true });
-    return result;
+const updateCar = async (id: string, data: Partial<TCar>) => {
+    try {
+        // If a file path is provided, upload to cloudinary
+        if (data.image && typeof data.image === 'string' && !data.image.startsWith('http')) {
+            const imageName = data?.name || `car_${id}`;
+            const path = data.image;
+            const { secure_url } = await sendImageToCloudinary(imageName, path);
+            data.image = secure_url as string;
+        }
+        
+        // Use runValidators to ensure the update data meets validation criteria
+        const result = await CarModel.findByIdAndUpdate(
+            id, 
+            { $set: data }, 
+            { new: true, runValidators: true }
+        );
+        
+        if (!result) {
+            throw new Error(`Car with id ${id} not found`);
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Error updating car:', error);
+        throw error;
+    }
 };
 // 5. Delete a Car
 const deleteCar = async (id: string) => {

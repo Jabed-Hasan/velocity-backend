@@ -19,15 +19,39 @@ const login = async (payload: ILogInUser) => {
         throw new Error('This user is blocked')
     }
 
-    const checkPassword = await bcrypt.compare(payload?.password, user?.password)
-
-    if (!checkPassword) {
-        throw new Error('Password does not match!')
+    console.log('Login attempt for:', payload.email);
+    console.log('Input password:', payload.password);
+    console.log('Stored hashed password:', user.password);
+    
+    // Make sure we're passing strings to bcrypt.compare
+    const inputPassword = String(payload?.password || '');
+    const storedPassword = String(user?.password || '');
+    
+    // Ensure proper comparison
+    try {
+        const checkPassword = await bcrypt.compare(inputPassword, storedPassword);
+        console.log('Password comparison result:', checkPassword);
+        
+        if (!checkPassword) {
+            throw new Error('Password does not match!');
+        }
+    } catch (error) {
+        console.error('Password comparison error:', error);
+        throw new Error('Password does not match!');
     }
+    
     // generate token for authorization
-    const token = jwt.sign({ email: user?.email, role: user?.role }, config.JWT_ACCESS_SECRET as string, { expiresIn: "30d" })
+    const token = jwt.sign({ 
+        email: user?.email, 
+        role: user?.role,
+        userId: user?._id 
+    }, config.JWT_ACCESS_SECRET as string, { expiresIn: "30d" })
     // console.log(token);
-    const refreshToken = jwt.sign({ email: user?.email, role: user?.role }, config.JWT_REFRESH_SECRET as string, { expiresIn: "365d" })
+    const refreshToken = jwt.sign({ 
+        email: user?.email, 
+        role: user?.role,
+        userId: user?._id 
+    }, config.JWT_REFRESH_SECRET as string, { expiresIn: "365d" })
 
     const verifyUser = { name: user.name, email: user?.email, role: user?.role, id: user?._id }
     // console.log(user);
@@ -60,9 +84,13 @@ const refreshToken = async (token: string) => {
         throw new Error('This user is blocked ! !')
     }
 
-    const accessToken = jwt.sign({ email: user?.email, role: user?.role }, config.JWT_ACCESS_SECRET as string, { expiresIn: "10d" })
+    const newAccessToken = jwt.sign({ 
+        email: user?.email, 
+        role: user?.role,
+        userId: user?._id
+    }, config.JWT_ACCESS_SECRET as string, { expiresIn: "10d" })
 
-    return { accessToken }
+    return { accessToken: newAccessToken }
 
 }
 

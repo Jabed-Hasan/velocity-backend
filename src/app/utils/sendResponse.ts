@@ -6,6 +6,15 @@ type TSuccessResponse<T> = {
     message: string
     token?: string
     data: T | T[] | null
+    meta?: {
+        page: number
+        limit: number
+        total: number
+    }
+    errorSources?: Array<{
+        path: string
+        message: string
+    }>
 }
 
 const sendResponse = <T>(res: Response, data: TSuccessResponse<T>) => {
@@ -15,7 +24,8 @@ const sendResponse = <T>(res: Response, data: TSuccessResponse<T>) => {
         message: data.message,
         token: data.token,
         data: data.data,
-
+        meta: data.meta,
+        errorSources: data.errorSources,
     })
 }
 

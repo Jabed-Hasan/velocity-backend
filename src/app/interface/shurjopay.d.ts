@@ -117,6 +117,9 @@ declare module "shurjopay" {
             return_url: string
         ): void;
 
+
+        makePayment(checkout_params,checkout_callback,error_handler): void;
+ 
         randomString(length: number): string;
 
         log(message: string, level: "info" | "warn" | "error"): void;
