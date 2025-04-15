@@ -225,6 +225,28 @@ const getUserOrders = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const deleteOrder = catchAsync(async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+  
+  if (!orderId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      status: false,
+      message: "Order ID is required",
+      data: null
+    });
+  }
+  
+  const result = await orderService.deleteOrder(orderId);
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    status: true,
+    message: "Order deleted successfully",
+    data: result
+  });
+});
+
 export const orderController = { 
   createOrder, 
   getRevenue, 
@@ -236,5 +258,6 @@ export const orderController = {
   updateTracking,
   assignTrackingNumber,
   setEstimatedDelivery,
-  getUserOrders
+  getUserOrders,
+  deleteOrder
 };

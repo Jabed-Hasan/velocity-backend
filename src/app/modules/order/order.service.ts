@@ -434,6 +434,18 @@ const getUserOrders = async (userId: string) => {
   return orders;
 };
 
+const deleteOrder = async (orderId: string) => {
+  const order = await OrderModel.findById(orderId);
+  
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+  }
+  
+  await OrderModel.findByIdAndDelete(orderId);
+  
+  return { message: "Order deleted successfully" };
+};
+
 // Export the tracking services
 export const orderService = { 
   createOrder, 
@@ -446,5 +458,6 @@ export const orderService = {
   updateOrderTracking,
   assignTrackingNumber,
   setEstimatedDelivery,
-  getUserOrders
+  getUserOrders,
+  deleteOrder
 };

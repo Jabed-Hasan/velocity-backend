@@ -20,4 +20,7 @@ router.patch('/change-password/:id', auth(USER_ROLE.user, USER_ROLE.admin), user
 // 5. Admin update user (including role changes and other info)
 router.patch('/admin-update/:id', auth(USER_ROLE.admin), userController.adminUpdateUser);
 
+// 6. Delete a user (admin only)
+router.delete('/:id', auth(USER_ROLE.admin), userController.deleteUser);
+
 export const userRoutes = router;

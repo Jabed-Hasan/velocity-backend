@@ -242,10 +242,66 @@ const adminUpdateUser = catchAsync(async (req: Request, res: Response, next: Nex
     }
 });
 
+// Delete user (admin only)
+const deleteUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.params.id;
+    
+    try {
+        // Delete the user
+        const result = await userService.deleteUser(userId);
+        
+        sendResponse(res, {
+            statusCode: httpStatus.OK,
+            status: true,
+            message: 'User deleted successfully',
+            data: result
+        });
+    } catch (error: Error | unknown) {
+        // Handle specific errors
+        const err = error as Error;
+        if (err.message.includes('Invalid ID')) {
+            return sendResponse(res, {
+                statusCode: httpStatus.BAD_REQUEST,
+                status: false,
+                message: 'Invalid ID',
+                data: null,
+                errorSources: [
+                    {
+                        path: '',
+                        message: err.message
+                    }
+                ]
+            });
+        } else if (err.message.includes('User not found')) {
+            return sendResponse(res, {
+                statusCode: httpStatus.NOT_FOUND,
+                status: false,
+                message: 'User not found',
+                data: null
+            });
+        }
+        
+        // Default error handling
+        return sendResponse(res, {
+            statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+            status: false,
+            message: 'Failed to delete user',
+            data: null,
+            errorSources: [
+                {
+                    path: '',
+                    message: err.message
+                }
+            ]
+        });
+    }
+});
+
 export const userController = { 
     getUsers, 
     getSingleUsers, 
     updateUserInfo,
     changePassword,
-    adminUpdateUser
+    adminUpdateUser,
+    deleteUser
 }

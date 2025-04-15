@@ -36,6 +36,8 @@ router.patch('/track/:orderId', auth(USER_ROLE.admin), orderController.updateTra
 router.patch('/track/:orderId/number', auth(USER_ROLE.admin), orderController.assignTrackingNumber);
 router.patch('/track/:orderId/delivery-date', auth(USER_ROLE.admin), orderController.setEstimatedDelivery);
 
+// Admin-only delete route
+router.delete('/:orderId', auth(USER_ROLE.admin), orderController.deleteOrder);
 
 export const orderRoutes = router;
 

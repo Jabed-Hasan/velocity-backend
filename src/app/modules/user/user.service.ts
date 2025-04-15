@@ -110,10 +110,29 @@ const adminUpdateUser = async (id: string, payload: Partial<TUser>) => {
     return updatedUser;
 };
 
+// Delete a user (admin only)
+const deleteUser = async (id: string) => {
+    // Check if ID is valid MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new Error('Invalid ID format');
+    }
+    
+    // First find the user by ID to check if they exist
+    const existingUser = await UserModel.findById(id);
+    if (!existingUser) {
+        throw new Error('User not found');
+    }
+    
+    // Delete the user
+    const result = await UserModel.findByIdAndDelete(id);
+    return result;
+};
+
 export const userService = { 
     getSingleUser, 
     getAllUser, 
     updateUser,
     changePassword,
-    adminUpdateUser
+    adminUpdateUser,
+    deleteUser
 }
