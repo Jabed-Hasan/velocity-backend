@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const carValidationSchema = z.object({
   body: z.object({
     name: z.string().min(1, "Name is required"),
-    // image: z.string(),
+    image: z.string(),
     brand: z.string().min(1, "Brand is required"),
     model: z.string().min(1, "Model is required"),
     year: z.number().int().min(1886, "Year must be a valid number"),
