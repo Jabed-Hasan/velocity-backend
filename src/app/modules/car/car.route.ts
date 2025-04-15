@@ -3,7 +3,7 @@ import { CarControllers } from './car.controller';
 import auth from '../../middleware/auth';
 import { USER_ROLE } from '../user/user.interface';
 import validateRequest from '../../middleware/validateRequest';
-import { carValidationSchema } from './car.validation';
+import { carValidationSchema, carUpdateValidationSchema } from './car.validation';
 import { upload } from '../../utils/sendImageCloudinary';
 const router = express.Router();
 // 1. Create a Car
@@ -24,9 +24,30 @@ router.post('/',
 router.get('/', CarControllers.getCars);
 // 3. Get a Specific Car
 router.get('/:id', CarControllers.getSpecificCar);
-// 4. Update a Car
-router.patch('/:id', auth(USER_ROLE.admin), CarControllers.updateCar);
-// 5. Delete a Car
+// 4. Delete a Car
 router.delete('/:id', auth(USER_ROLE.admin), CarControllers.deleteCar);
+
+// 4. Update a Car
+router.patch('/:id', 
+    auth(USER_ROLE.admin),
+    upload.single('file'),
+    (req: Request, res: Response, next: NextFunction) => {
+        // Handle multipart form data
+        if (req.body.data) {
+            try {
+                req.body = JSON.parse(req.body.data);
+            } catch (error) {
+                next(error);
+                return;
+            }
+        }
+        // Add file path to body for validation
+        if (req.file) {
+            req.body.image = req.file.path;
+        }
+        next();
+    },
+    validateRequest(carUpdateValidationSchema),
+    CarControllers.updateCar);
 
 export const CarRoutes = router;

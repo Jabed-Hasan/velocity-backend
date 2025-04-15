@@ -242,23 +242,10 @@ const adminUpdateUser = catchAsync(async (req: Request, res: Response, next: Nex
     }
 });
 
-// Delete a user
-const deleteUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const id = req.params.id;
-    const result = await userService.deleteUser(id);
-    sendResponse(res, { 
-        statusCode: httpStatus.OK, 
-        status: true, 
-        message: 'User deleted successfully!', 
-        data: result 
-    });
-});
-
 export const userController = { 
     getUsers, 
     getSingleUsers, 
     updateUserInfo,
     changePassword,
-    adminUpdateUser,
-    deleteUser
+    adminUpdateUser
 }

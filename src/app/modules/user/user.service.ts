@@ -110,17 +110,10 @@ const adminUpdateUser = async (id: string, payload: Partial<TUser>) => {
     return updatedUser;
 };
 
-// Delete a user
-const deleteUser = async (id: string) => {
-    const result = await UserModel.findByIdAndDelete(id);
-    return result;
-};
-
 export const userService = { 
     getSingleUser, 
     getAllUser, 
     updateUser,
     changePassword,
-    adminUpdateUser,
-    deleteUser
+    adminUpdateUser
 }

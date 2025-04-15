@@ -77,9 +77,32 @@ const getSpecificCar = async (id: string) => {
     return result;
 };
 // 4. Update a Car
-const updateCar = async (id: string, data: TCar) => {
-    const result = await CarModel.findByIdAndUpdate(id, data, { new: true });
-    return result;
+const updateCar = async (id: string, data: Partial<TCar>) => {
+    try {
+        // If a file path is provided, upload to cloudinary
+        if (data.image && typeof data.image === 'string' && !data.image.startsWith('http')) {
+            const imageName = data?.name || `car_${id}`;
+            const path = data.image;
+            const { secure_url } = await sendImageToCloudinary(imageName, path);
+            data.image = secure_url as string;
+        }
+        
+        // Use runValidators to ensure the update data meets validation criteria
+        const result = await CarModel.findByIdAndUpdate(
+            id, 
+            { $set: data }, 
+            { new: true, runValidators: true }
+        );
+        
+        if (!result) {
+            throw new Error(`Car with id ${id} not found`);
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Error updating car:', error);
+        throw error;
+    }
 };
 // 5. Delete a Car
 const deleteCar = async (id: string) => {
