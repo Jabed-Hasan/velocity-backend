@@ -36,12 +36,12 @@ const auth = (...requiredRoles: TUserRole[]) => {
         
         // If email lookup fails but we have userId, try finding by userId
         if (!user && userId) {
-            console.log(`User not found with email: ${email}, trying userId: ${userId}`);
+           // console.log(`User not found with email: ${email}, trying userId: ${userId}`);
             user = await UserModel.findById(userId);
         }
 
         if (!user) {
-            console.log(`User not found with email: ${email} or id`);
+           // console.log(`User not found with email: ${email} or id`);
             throw new Error(`User not found with email: ${email}`);
         }
 

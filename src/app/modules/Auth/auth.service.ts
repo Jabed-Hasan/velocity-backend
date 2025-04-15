@@ -18,12 +18,12 @@ const login = async (payload: ILogInUser) => {
     }
     const isBlocked = user?.isBlocked
     if (isBlocked === true) {
-        throw new AppError(httpStatus.FORBIDDEN, 'Your account has been deactivated. Please contact support for assistance.')
+        throw new AppError(httpStatus.FORBIDDEN, 'Your account has been Deactivated. Please contact support for assistance.')
     }
 
-    console.log('Login attempt for:', payload.email);
-    console.log('Input password:', payload.password);
-    console.log('Stored hashed password:', user.password);
+   // console.log('Login attempt for:', payload.email);
+    //console.log('Input password:', payload.password);
+    //console.log('Stored hashed password:', user.password);
     
     // Make sure we're passing strings to bcrypt.compare
     const inputPassword = String(payload?.password || '');
@@ -32,13 +32,13 @@ const login = async (payload: ILogInUser) => {
     // Ensure proper comparison
     try {
         const checkPassword = await bcrypt.compare(inputPassword, storedPassword);
-        console.log('Password comparison result:', checkPassword);
+       // console.log('Password comparison result:', checkPassword);
         
         if (!checkPassword) {
             throw new AppError(httpStatus.UNAUTHORIZED, 'Password does not match!');
         }
     } catch (error) {
-        console.error('Password comparison error:', error);
+       // console.error('Password comparison error:', error);
         throw new AppError(httpStatus.UNAUTHORIZED, 'Password does not match!');
     }
     
@@ -87,7 +87,7 @@ const refreshToken = async (token: string) => {
     const userStatus = user?.isBlocked
 
     if (userStatus === true) {
-        throw new AppError(httpStatus.FORBIDDEN, 'Your account has been blocked. Please contact support for assistance.')
+        throw new AppError(httpStatus.FORBIDDEN, 'Your account has been Deactivated. Please contact support for assistance.')
     }
 
     const newAccessToken = jwt.sign({ 
