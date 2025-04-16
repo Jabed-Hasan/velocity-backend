@@ -95,7 +95,7 @@ const createOrder = async (
   const products = payload.products;
 
   // Set fixed shipping cost
-  const shippingCost = 250;
+  const shippingCost = 2500;
 
   let subtotal = 0;
   const productDetails = await Promise.all(

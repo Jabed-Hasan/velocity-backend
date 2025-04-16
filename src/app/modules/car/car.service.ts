@@ -3,17 +3,34 @@ import { TCar } from './car.interface';
 import { CarModel } from './car.modle';
 
 // 1. Create a Car
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const createCarInDB = async (car: TCar, file: any) => {
-  // console.log(car, file, "console from car service");
+const createCarInDB = async (car: TCar) => {
+  try {
+    console.log('Creating car in DB with:', {
+      name: car?.name,
+      hasImage: !!car.image,
+    });
 
-  const imageName = car?.name;
-  const path = file?.path;
-  const { secure_url } = await sendImageToCloudinary(imageName, path);
-  car.image = secure_url as string;
-  const result = await CarModel.create(car);
-  return result;
+    // Verify image URL is present
+    if (!car.image) {
+      throw new Error('Image URL is required');
+    }
+
+    // Verify it's actually a URL
+    if (!car.image.startsWith('http')) {
+      throw new Error('Invalid image URL format');
+    }
+
+    // Create car in database
+    console.log('Creating car in database');
+    const result = await CarModel.create(car);
+    console.log('Car created with ID:', result._id);
+    return result;
+  } catch (error) {
+    console.error('Error in createCarInDB:', error);
+    throw error;
+  }
 };
+
 // 2. Get All Cars
 const getAllCarsFromDb = async (query: Record<string, unknown>) => {
   const searchableFields = ['name', 'model', 'brand', 'category'];
@@ -80,23 +97,28 @@ const getAllCarsFromDb = async (query: Record<string, unknown>) => {
     },
   };
 };
+
 // 3. Get a Specific Car
 const getSpecificCar = async (id: string) => {
   const result = await CarModel.findById(id);
   return result;
 };
+
 // 4. Update a Car
 const updateCar = async (id: string, data: Partial<TCar>) => {
   try {
-    // If a file path is provided, upload to cloudinary
+    // If a file path or base64 data is provided, upload to cloudinary
     if (
       data.image &&
       typeof data.image === 'string' &&
-      !data.image.startsWith('http')
+      (data.image.startsWith('data:') || !data.image.startsWith('http'))
     ) {
       const imageName = data?.name || `car_${id}`;
-      const path = data.image;
-      const { secure_url } = await sendImageToCloudinary(imageName, path);
+      const imageSource = data.image;
+      const { secure_url } = await sendImageToCloudinary(
+        imageName,
+        imageSource,
+      );
       data.image = secure_url as string;
     }
 
@@ -117,6 +139,7 @@ const updateCar = async (id: string, data: Partial<TCar>) => {
     throw error;
   }
 };
+
 // 5. Delete a Car
 const deleteCar = async (id: string) => {
   const result = await CarModel.findByIdAndDelete(id);

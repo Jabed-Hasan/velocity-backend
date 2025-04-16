@@ -9,14 +9,31 @@ import { CarServices } from './car.service';
 // 1. Create a Car
 const createCar = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const result = await CarServices.createCarInDB(req.body, req.file);
+    try {
+      console.log(
+        'In createCar controller - body keys:',
+        Object.keys(req.body),
+      );
 
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      status: true,
-      message: 'Car is created successfully',
-      data: result,
-    });
+      // At this point, image should already be processed and in Cloudinary
+      // and available as req.body.image
+      if (!req.body.image) {
+        console.warn('No image URL found in request body');
+      }
+
+      // Create car record
+      const result = await CarServices.createCarInDB(req.body);
+
+      sendResponse(res, {
+        statusCode: httpStatus.OK,
+        status: true,
+        message: 'Car is created successfully',
+        data: result,
+      });
+    } catch (error: unknown) {
+      console.error('Error in createCar controller:', error);
+      next(error);
+    }
   },
 );
 // 2. Get All Cars
