@@ -43,13 +43,6 @@ import { orderUtils } from './order.utils';
 //   //   totalPrice,
 //   // });
 
-
-
-
-
-
-
-
 //   const totalPrice = Number(quantity * price)
 //   // console.log(productDetails, "To");
 //   let order = await OrderModel.create(productDetails);
@@ -84,25 +77,25 @@ import { orderUtils } from './order.utils';
 
 const createOrder = async (
   user: any,
-  payload: { 
-    products: { product: string; quantity: number; price?: number }[],
-    customerFirstName: string,
-    customerLastName: string,
-    email: string,
-    phone: string,
-    address: string,
-    city: string,
-    zipCode: string
+  payload: {
+    products: { product: string; quantity: number; price?: number }[];
+    customerFirstName: string;
+    customerLastName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    zipCode: string;
   },
-  client_ip: string
+  client_ip: string,
 ) => {
   if (!payload?.products?.length)
-    throw new AppError(httpStatus.NOT_ACCEPTABLE, "Order is not specified");
+    throw new AppError(httpStatus.NOT_ACCEPTABLE, 'Order is not specified');
 
   const products = payload.products;
-  
+
   // Set fixed shipping cost
-  const shippingCost = 250;
+  const shippingCost = 2500;
 
   let subtotal = 0;
   const productDetails = await Promise.all(
@@ -111,36 +104,36 @@ const createOrder = async (
       if (!product) {
         throw new AppError(
           httpStatus.NOT_FOUND,
-          `Product with ID ${item.product} not found`
+          `Product with ID ${item.product} not found`,
         );
       }
-      
+
       // Use the product price from the database
       const price = product.price || 0;
       const itemSubtotal = price * item.quantity;
       subtotal += itemSubtotal;
-      
+
       return {
         product: item.product,
         quantity: item.quantity,
         price: price,
-        subtotal: itemSubtotal
+        subtotal: itemSubtotal,
       };
-    })
+    }),
   );
-  
+
   // Verify we have valid product details before proceeding
   if (!productDetails.length) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "No valid products found for this order"
+      'No valid products found for this order',
     );
   }
 
   // Calculate tax (5% of subtotal)
   const taxRate = 0.05;
   const tax = subtotal * taxRate;
-  
+
   // Calculate total price (subtotal + tax + shipping)
   const totalPrice = subtotal + tax + shippingCost;
 
@@ -148,18 +141,18 @@ const createOrder = async (
   const timestamp = Date.now().toString(36);
   const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
   const trackingNumber = `TRK-${timestamp}-${randomStr}`;
-  
+
   // Create initial tracking update
   const initialTrackingUpdate = {
     stage: 'placed',
     timestamp: new Date(),
-    message: 'Order has been placed successfully'
+    message: 'Order has been placed successfully',
   };
 
   // Calculate estimated delivery date (1 week from now)
   // const estimatedDeliveryDate = new Date();
   // estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 7);
-  
+
   const order = await OrderModel.create({
     user,
     customerFirstName: payload.customerFirstName,
@@ -175,7 +168,7 @@ const createOrder = async (
     shipping: shippingCost,
     totalPrice,
     trackingNumber, // Add tracking number
-    trackingUpdates: [initialTrackingUpdate] // Add initial tracking update
+    trackingUpdates: [initialTrackingUpdate], // Add initial tracking update
     // estimatedDeliveryDate // Add estimated delivery date
   });
 
@@ -183,7 +176,7 @@ const createOrder = async (
   if (!order.products || order.products.length === 0) {
     throw new AppError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      "Failed to save products to the order"
+      'Failed to save products to the order',
     );
   }
 
@@ -191,7 +184,7 @@ const createOrder = async (
   const shurjopayPayload = {
     amount: totalPrice,
     order_id: order._id,
-    currency: "BDT",
+    currency: 'BDT',
     customer_name: `${payload.customerFirstName} ${payload.customerLastName}`,
     customer_address: payload.address,
     customer_email: payload.email,
@@ -201,16 +194,19 @@ const createOrder = async (
   };
 
   const payment = await orderUtils.makePaymentAsync(shurjopayPayload);
-  
-  if(payment?.transactionStatus) {
-    await OrderModel.updateOne({ _id: order._id }, {
-      transaction: {
-        id: payment.sp_order_id,
-        transactionStatus: payment.transactionStatus,
+
+  if (payment?.transactionStatus) {
+    await OrderModel.updateOne(
+      { _id: order._id },
+      {
+        transaction: {
+          id: payment.sp_order_id,
+          transactionStatus: payment.transactionStatus,
+        },
       },
-    });
+    );
   }
-  
+
   // Return both payment URL and order details including tracking number
   return {
     checkoutUrl: payment.checkout_url,
@@ -218,9 +214,9 @@ const createOrder = async (
       orderId: order._id,
       trackingNumber: order.trackingNumber,
       totalPrice: order.totalPrice,
-      status: order.status
+      status: order.status,
       // estimatedDeliveryDate: order.estimatedDeliveryDate
-    }
+    },
   };
 };
 
@@ -239,44 +235,48 @@ const createOrder = async (
 // };
 
 const verifyPayment = async (order_id: string) => {
-   const verifiedPayment = await orderUtils.verifyPaymentAsync(order_id);
-   if(verifiedPayment.length){
+  const verifiedPayment = await orderUtils.verifyPaymentAsync(order_id);
+  if (verifiedPayment.length) {
     const bankStatus = verifiedPayment[0].bank_status;
-    const isCancelled = bankStatus === "Cancel";
-    const isPaid = bankStatus === "Success";
+    const isCancelled = bankStatus === 'Cancel';
+    const isPaid = bankStatus === 'Success';
     const isBankStatusNull = !bankStatus || bankStatus === null;
-    
+
     const updateData: any = {
-      "transaction.bank_status": bankStatus,
-      "transaction.sp_code": verifiedPayment[0].sp_code,
-      "transaction.sp_message": verifiedPayment[0].sp_message,
-      "transaction.transaction_status": verifiedPayment[0].transaction_status,
-      "transaction.date_time": verifiedPayment[0].date_time,
-      status: bankStatus === "Success" ? "Paid" 
-              : bankStatus === "Failed" ? "Pending"
-              : bankStatus === "Cancel" ? "Cancelled"
-              : ""
+      'transaction.bank_status': bankStatus,
+      'transaction.sp_code': verifiedPayment[0].sp_code,
+      'transaction.sp_message': verifiedPayment[0].sp_message,
+      'transaction.transaction_status': verifiedPayment[0].transaction_status,
+      'transaction.date_time': verifiedPayment[0].date_time,
+      status:
+        bankStatus === 'Success'
+          ? 'Paid'
+          : bankStatus === 'Failed'
+            ? 'Pending'
+            : bankStatus === 'Cancel'
+              ? 'Cancelled'
+              : '',
     };
-    
+
     // If order is cancelled or bank status is null, clear estimated delivery date
     if (isCancelled || isBankStatusNull) {
       updateData.estimatedDeliveryDate = undefined;
     }
-    
+
     // If order is paid, set estimated delivery date to 7 days from now
     if (isPaid) {
       const estimatedDeliveryDate = new Date();
       estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 7);
       updateData.estimatedDeliveryDate = estimatedDeliveryDate;
     }
-    
+
     await OrderModel.findOneAndUpdate(
-      { "transaction.id": order_id },
-      updateData
+      { 'transaction.id': order_id },
+      updateData,
     );
-   }
- 
-   return verifiedPayment;
+  }
+
+  return verifiedPayment;
 };
 
 const getOrders = async () => {
@@ -298,20 +298,23 @@ const calculateRevenue = async () => {
 };
 
 const getDetails = async () => {
-  const result = await OrderModel.find()
+  const result = await OrderModel.find();
   // console.log(result, "From order service");
-  return result
-}
+  return result;
+};
 
 // Add these tracking-related services at the end of the file
 const getOrderByTrackingNumber = async (trackingNumber: string) => {
   const order = await OrderModel.findOne({ trackingNumber }).populate({
     path: 'products.product',
-    model: 'Car'
+    model: 'Car',
   });
-  
+
   if (!order) {
-    throw new AppError(httpStatus.NOT_FOUND, "Order not found with this tracking number");
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'Order not found with this tracking number',
+    );
   }
   return order;
 };
@@ -319,11 +322,11 @@ const getOrderByTrackingNumber = async (trackingNumber: string) => {
 const getOrderById = async (orderId: string) => {
   const order = await OrderModel.findById(orderId).populate({
     path: 'products.product',
-    model: 'Car'
+    model: 'Car',
   });
-  
+
   if (!order) {
-    throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
   }
   return order;
 };
@@ -334,11 +337,11 @@ const updateOrderTracking = async (
     stage: 'placed' | 'approved' | 'processed' | 'shipped' | 'delivered';
     message: string;
     estimatedDeliveryDate?: string | Date;
-  }
+  },
 ) => {
   const order = await OrderModel.findById(orderId);
   if (!order) {
-    throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
   }
 
   // Update tracking stages - ensure all previous stages are also set to true
@@ -385,7 +388,9 @@ const updateOrderTracking = async (
   } else {
     // Otherwise, set estimated delivery date if provided
     if (trackingData.estimatedDeliveryDate) {
-      order.estimatedDeliveryDate = new Date(trackingData.estimatedDeliveryDate);
+      order.estimatedDeliveryDate = new Date(
+        trackingData.estimatedDeliveryDate,
+      );
     }
   }
 
@@ -393,31 +398,37 @@ const updateOrderTracking = async (
   return order;
 };
 
-const assignTrackingNumber = async (orderId: string, trackingNumber: string) => {
+const assignTrackingNumber = async (
+  orderId: string,
+  trackingNumber: string,
+) => {
   const order = await OrderModel.findByIdAndUpdate(
     orderId,
     { trackingNumber },
-    { new: true }
+    { new: true },
   );
-  
+
   if (!order) {
-    throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
   }
-  
+
   return order;
 };
 
-const setEstimatedDelivery = async (orderId: string, estimatedDeliveryDate: Date) => {
+const setEstimatedDelivery = async (
+  orderId: string,
+  estimatedDeliveryDate: Date,
+) => {
   const order = await OrderModel.findByIdAndUpdate(
     orderId,
     { estimatedDeliveryDate },
-    { new: true }
+    { new: true },
   );
-  
+
   if (!order) {
-    throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
   }
-  
+
   return order;
 };
 
@@ -426,31 +437,31 @@ const getUserOrders = async (userId: string) => {
   const orders = await OrderModel.find({ user: userId })
     .populate({
       path: 'products.product',
-      model: 'Car'
+      model: 'Car',
     })
     .select('-trackingStages') // Exclude trackingStages from the response
     .sort({ createdAt: -1 });
-  
+
   return orders;
 };
 
 const deleteOrder = async (orderId: string) => {
   const order = await OrderModel.findById(orderId);
-  
+
   if (!order) {
-    throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
   }
-  
+
   await OrderModel.findByIdAndDelete(orderId);
-  
-  return { message: "Order deleted successfully" };
+
+  return { message: 'Order deleted successfully' };
 };
 
 // Export the tracking services
-export const orderService = { 
-  createOrder, 
-  verifyPayment, 
-  getOrders, 
+export const orderService = {
+  createOrder,
+  verifyPayment,
+  getOrders,
   calculateRevenue,
   getDetails,
   getOrderByTrackingNumber,
@@ -459,5 +470,5 @@ export const orderService = {
   assignTrackingNumber,
   setEstimatedDelivery,
   getUserOrders,
-  deleteOrder
+  deleteOrder,
 };

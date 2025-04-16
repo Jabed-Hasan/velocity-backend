@@ -9,8 +9,23 @@ import handleDuplicateError from './handleDuplicateError';
 import AppError from './appError';
 import config from '../config';
 
-const globalErrorHandler: ErrorRequestHandler = (err, req, res, next): void | Promise<void> => {
-
+const globalErrorHandler: ErrorRequestHandler = (
+  err,
+  req,
+  res,
+  next,
+): void | Promise<void> => {
+  // Log detailed error information for debugging
+  console.error('Global error handler caught:', {
+    name: err?.name,
+    message: err?.message,
+    code: err?.code,
+    stack: err?.stack,
+    body: req.body,
+    path: req.path,
+    method: req.method,
+    headers: req.headers,
+  });
 
   // default values
   let statusCode = 500;
@@ -61,11 +76,32 @@ const globalErrorHandler: ErrorRequestHandler = (err, req, res, next): void | Pr
     ];
   }
 
+  // Check for form-data parsing errors specifically
+  if (
+    err?.message?.includes('form-data') ||
+    req.headers['content-type']?.includes('multipart/form-data')
+  ) {
+    console.log('Form-data error detected:', err);
+    message = 'Error processing form data';
+    errorSources = [
+      {
+        path: 'form-data',
+        message:
+          'There was an error processing your file upload. Please try again.',
+      },
+    ];
+  }
+
   res.status(statusCode).json({
     success: false,
     message,
     errorSources,
-    err,
+    // Include original error details in development and production (for debugging Vercel issue)
+    originalError: {
+      name: err?.name,
+      code: err?.code,
+      message: err?.message,
+    },
     stack: config.NODE_ENV === 'development' ? err?.stack : null,
   });
 };

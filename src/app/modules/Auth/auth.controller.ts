@@ -36,7 +36,8 @@ const login = catchAsync(async (req: Request, res: Response) => {
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         status: false,
-        message: 'Your account has been blocked. Please contact support for assistance.',
+        message:
+          'Your account has been deactivated. Please contact support for assistance.',
         data: null,
       });
     }
