@@ -59,7 +59,7 @@ const getAllCarsFromDb = async (query: Record<string, unknown>) => {
 
   // Pagination
   const page = Number(query?.page) || 1;
-  const limit = Number(query?.limit) || 20;
+  const limit = Number(query?.limit) || 10000;
   // // skip = (page-1)*limit
   const skip = (page - 1) * limit;
 
