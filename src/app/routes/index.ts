@@ -3,6 +3,7 @@ import { CarRoutes } from '../modules/car/car.route';
 import { orderRoutes } from '../modules/order/order.route';
 import authRoute from '../modules/Auth/auth.route';
 import { userRoutes } from '../modules/user/user.route';
+import { newsletterRoutes } from '../modules/newsletter/newsletter.route';
 import { upload } from '../utils/sendImageCloudinary';
 import { sendImageToCloudinary } from '../utils/sendImageCloudinary';
 
@@ -119,6 +120,10 @@ const modelRouters = [
   {
     path: '/user',
     route: userRoutes,
+  },
+  {
+    path: '/newsletter',
+    route: newsletterRoutes,
   },
 ];
 

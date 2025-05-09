@@ -5,6 +5,13 @@ import config from '../../config';
 // Create a new instance of ShurjoPay
 const shurjopay = new Shurjopay();
 
+// Log ShurjoPay config values
+console.log('Configuring ShurjoPay with these values:');
+console.log('SP_ENDPOINT:', config.SP.sp_endpoint);
+console.log('SP_USERNAME:', config.SP.sp_username);
+console.log('SP_PREFIX:', config.SP.sp_prefix);
+console.log('SP_RETURN_URL:', config.SP.sp_return_url);
+
 // Configure ShurjoPay with credentials - use uppercase env var names
 shurjopay.config(
   config.SP.sp_endpoint!,

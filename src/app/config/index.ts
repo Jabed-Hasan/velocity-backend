@@ -3,13 +3,13 @@ import path from 'path';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
-// // Debug environment variables
-// console.log('Environment variables loaded:');
-// console.log('SP_ENDPOINT:', process.env.SP_ENDPOINT);
-// console.log('SP_USERNAME:', process.env.SP_USERNAME);
-// console.log('SP_PASSWORD:', process.env.SP_PASSWORD ? '[REDACTED]' : 'undefined');
-// console.log('SP_PREFIX:', process.env.SP_PREFIX);
-// console.log('SP_RETURN_URL:', process.env.SP_RETURN_URL);
+// Debug environment variables
+console.log('Environment variables loaded:');
+console.log('SP_ENDPOINT:', process.env.SP_ENDPOINT);
+console.log('SP_USERNAME:', process.env.SP_USERNAME);
+console.log('SP_PASSWORD:', process.env.SP_PASSWORD ? '[REDACTED]' : 'undefined');
+console.log('SP_PREFIX:', process.env.SP_PREFIX);
+console.log('SP_RETURN_URL:', process.env.SP_RETURN_URL);
 
 export default {
   port: process.env.PORT,

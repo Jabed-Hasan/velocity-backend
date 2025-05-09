@@ -191,6 +191,7 @@ const createOrder = async (
     customer_phone: payload.phone,
     customer_city: payload.city,
     client_ip,
+    return_url: "http://localhost:5173/order/verify", // Explicitly override return URL
   };
 
   const payment = await orderUtils.makePaymentAsync(shurjopayPayload);
